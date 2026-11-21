@@ -5,6 +5,8 @@ PREFIX="${PREFIX:-/tmp/build}"
 
 SCRIPTDIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPTDIR}/../versions.env"
+source "${SCRIPTDIR}/tmux_source.sh"
+TMUX_REF="$(tmux_source_ref)"
 
 mkdir -p "$PREFIX/licenses"
 
@@ -32,11 +34,7 @@ wget -q "https://raw.githubusercontent.com/JuliaStrings/utf8proc/v${UTF8PROC_VER
 
 # tmux
 echo "Collecting tmux license..."
-if [[ "${TMUX_VERSION}" == "preview" ]]; then
-    wget -q "https://raw.githubusercontent.com/tmux/tmux/master/COPYING" -O "$PREFIX/licenses/COPYING.tmux"
-else
-    wget -q "https://raw.githubusercontent.com/tmux/tmux/${TMUX_VERSION}/COPYING" -O "$PREFIX/licenses/COPYING.tmux"
-fi
+wget -q "https://raw.githubusercontent.com/tmux/tmux/${TMUX_REF}/COPYING" -O "$PREFIX/licenses/COPYING.tmux"
 
 # Create archive
 echo "Creating archive..."

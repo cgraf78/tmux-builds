@@ -1,12 +1,13 @@
 # tmux builds
 
-This repository provides ready to use binaries of the [tmux](https://github.com/tmux/tmux/) terminal multiplexer.
+This repository provides sixel-enabled binaries of the [tmux](https://github.com/tmux/tmux/) terminal multiplexer.
 
 ## Available Releases
 
-All releases are available in the [releases](https://github.com/tmux/tmux-builds/releases) section.  
+All releases are available in the [releases](https://github.com/cgraf78/tmux-builds/releases) section.
 
 Supported platforms:
+
 - Linux x86_64
 - Linux arm64
 - macOS x86_64
@@ -17,15 +18,17 @@ Supported platforms:
 
 Two types of builds are provided:
 
-- **Release builds:** Stable versions of tmux (e.g. v3.6a).  
-- **Preview builds:** Built from the latest `master` commit; may include experimental features or unstable changes.
+- **Release builds:** Stable versions of tmux. A release tag such as `v3.6b-1` identifies build revision `1` of tmux `3.6b`. The archives and `tmux -V` report the upstream version `3.6b`.
+- **Preview builds:** Built from the upstream HEAD commit selected when the build starts. The full commit SHA is recorded in `tmux-upstream-sha.txt`.
+
+Each release includes `LICENSES.tar.gz` and a `SHA256SUMS` manifest for the archives.
 
 ## Installation
 
-1. Go to the [releases](https://github.com/tmux/tmux-builds/releases) page.  
+1. Go to the [releases](https://github.com/cgraf78/tmux-builds/releases) page.
 2. Download the archive for your platform.  
 3. Extract the archive with:
- 
+
    ```bash
    tar -xzf tmux-<version>-<platform>.tar.gz
    ```
@@ -67,4 +70,3 @@ See the build stage in the [GitHub Actions workflow](.github/workflows/create-re
 ## Acknowledgments
 
 The build scripts are inspired by the [build-static-tmux](https://github.com/mjakob-gh/build-static-tmux) repository by mjakob-gh.
-
