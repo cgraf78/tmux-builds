@@ -2,66 +2,68 @@
 set -euo pipefail
 
 if [[ -z "${PREFIX:-}" ]]; then
-    echo "Error: PREFIX must be set" >&2
-    exit 1
+  echo "Error: PREFIX must be set" >&2
+  exit 1
 fi
 
-if [[ -z "${TMUX_VERSION:-}" ]]; then
-    echo "Error: TMUX_VERSION must be set" >&2
-    exit 1
-fi
+SCRIPTDIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "${SCRIPTDIR}/tmux_source.sh"
+TMUX_REF="$(tmux_source_ref)"
 
 mkdir -p "$PREFIX/src"
 cd "$PREFIX/src"
 
 if [[ "${TMUX_VERSION}" == "preview" ]]; then
-    git clone https://github.com/tmux/tmux.git
-    cd tmux
-    sh autogen.sh
+  git init -q tmux
+  cd tmux
+  git fetch --depth=1 https://github.com/tmux/tmux.git "$TMUX_REF"
+  git checkout --detach FETCH_HEAD
+  sh autogen.sh
 else
-    wget "https://github.com/tmux/tmux/releases/download/${TMUX_VERSION}/tmux-${TMUX_VERSION}.tar.gz"
-    tar xzf "tmux-${TMUX_VERSION}.tar.gz"
-    cd "tmux-${TMUX_VERSION}"
+  wget "https://github.com/tmux/tmux/releases/download/${TMUX_REF}/tmux-${TMUX_REF}.tar.gz"
+  tar xzf "tmux-${TMUX_REF}.tar.gz"
+  cd "tmux-${TMUX_REF}"
 fi
 
 IS_MACOS=false
 if [[ "$(uname)" == "Darwin" ]]; then
-    IS_MACOS=true
+  IS_MACOS=true
 fi
 
 CONFIGURE_FLAGS=(
-    --prefix=${PREFIX}
-    --includedir="${PREFIX}/include"
-    --libdir="${PREFIX}/lib"
-    LIBEVENT_LIBS="-L${PREFIX}/lib -levent"
-    LIBNCURSES_CFLAGS="-I${PREFIX}/include/ncurses"
-    LIBNCURSES_LIBS="-L${PREFIX}/lib -lncurses"
-    LIBTINFO_CFLAGS="-I${PREFIX}/include/ncurses"
-    LIBTINFO_LIBS="-L${PREFIX}/lib -ltinfo"
-    CFLAGS="-I${PREFIX}/include"
-    LDFLAGS="-L${PREFIX}/lib"
-    CPPFLAGS="-I${PREFIX}/include"
+  --enable-sixel
+  --prefix="${PREFIX}"
+  --includedir="${PREFIX}/include"
+  --libdir="${PREFIX}/lib"
+  LIBEVENT_LIBS="-L${PREFIX}/lib -levent"
+  LIBNCURSES_CFLAGS="-I${PREFIX}/include/ncurses"
+  LIBNCURSES_LIBS="-L${PREFIX}/lib -lncurses"
+  LIBTINFO_CFLAGS="-I${PREFIX}/include/ncurses"
+  LIBTINFO_LIBS="-L${PREFIX}/lib -ltinfo"
+  CFLAGS="-I${PREFIX}/include"
+  LDFLAGS="-L${PREFIX}/lib"
+  CPPFLAGS="-I${PREFIX}/include"
 )
 
 if $IS_MACOS; then
-    CONFIGURE_FLAGS+=(
-        --enable-utf8proc
-        LIBUTF8PROC_CFLAGS="-I${PREFIX}/include"
-        LIBUTF8PROC_LIBS="${PREFIX}/lib/libutf8proc.a"
-        --disable-jemalloc
-    )
+  CONFIGURE_FLAGS+=(
+    --enable-utf8proc
+    LIBUTF8PROC_CFLAGS="-I${PREFIX}/include"
+    LIBUTF8PROC_LIBS="${PREFIX}/lib/libutf8proc.a"
+    --disable-jemalloc
+  )
 else
-    CONFIGURE_FLAGS+=(
-        --enable-static
-    )
+  CONFIGURE_FLAGS+=(
+    --enable-static
+  )
 fi
 
 ./configure "${CONFIGURE_FLAGS[@]}"
 
 if $IS_MACOS; then
-    make -j$(sysctl -n hw.ncpu)
+  make -j"$(sysctl -n hw.ncpu)"
 else
-    make -j$(nproc)
+  make -j"$(nproc)"
 fi
 
 make install
