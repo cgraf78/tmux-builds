@@ -33,7 +33,7 @@ jobs:
           case "$GITHUB_EVENT_NAME" in
             pull_request)
               echo "is_preview=false"
-              echo "tmux_version=3.6b"
+              echo "tmux_version=3.8"
               ;;
             push)
               VERSION="${GITHUB_REF_NAME#v}"
