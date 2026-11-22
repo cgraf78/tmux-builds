@@ -21,7 +21,6 @@ jobs:
   setup:
     runs-on: ubuntu-latest
     outputs:
-      is_preview: ${{ steps.meta.outputs.is_preview }}
       tmux_version: ${{ steps.meta.outputs.tmux_version }}
       tmux_reported_version: ${{ steps.meta.outputs.tmux_reported_version }}
       release_tag: ${{ steps.meta.outputs.release_tag }}
@@ -168,7 +167,8 @@ jobs:
           echo "CC=${PREFIX}/bin/musl-gcc -static" >> "$GITHUB_ENV"
 
       - name: Build zlib
-        if: matrix.os == 'linux' && needs.setup.outputs.is_preview == 'true'
+        # The musl linker needs its own zlib when tmux enables image support.
+        if: matrix.os == 'linux'
         run: ./scripts/build_zlib.sh
 
       - name: Build libevent

@@ -28,11 +28,9 @@ tar xzf "ncurses-${NCURSES_VERSION}.tar.gz"
 cp "ncurses-${NCURSES_VERSION}/COPYING" "$PREFIX/licenses/COPYING.ncurses"
 rm -rf "ncurses-${NCURSES_VERSION}" "ncurses-${NCURSES_VERSION}.tar.gz"
 
-# zlib (preview builds only: the tmux 3.8 tarball has no image support)
-if [[ "${TMUX_VERSION:-}" == "preview" ]]; then
-  echo "Collecting zlib license..."
-  wget -q "https://raw.githubusercontent.com/madler/zlib/v${ZLIB_VERSION}/README" -O "$PREFIX/licenses/LICENSE.zlib"
-fi
+# zlib
+echo "Collecting zlib license..."
+wget -q "https://raw.githubusercontent.com/madler/zlib/v${ZLIB_VERSION}/README" -O "$PREFIX/licenses/LICENSE.zlib"
 
 # utf8proc
 echo "Collecting utf8proc license..."
