@@ -8,6 +8,7 @@ RUN test -n "${TMUX_VERSION}" || (echo "TMUX_VERSION build argument is required.
 ARG MUSL_VERSION
 ARG LIBEVENT_VERSION
 ARG NCURSES_VERSION
+ARG ZLIB_VERSION
 ARG PREFIX
 
 ENV DEBIAN_FRONTEND=noninteractive
@@ -29,6 +30,7 @@ RUN /scripts/build_musl.sh
 
 ENV CC="${PREFIX}/bin/musl-gcc -static"
 
+RUN /scripts/build_zlib.sh
 RUN /scripts/build_libevent.sh
 RUN /scripts/build_ncurses.sh
 RUN /scripts/build_tmux.sh
