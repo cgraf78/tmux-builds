@@ -59,6 +59,7 @@ else
 fi
 
 ./configure "${CONFIGURE_FLAGS[@]}"
+tmux_stamp_version Makefile
 
 if $IS_MACOS; then
   make -j"$(sysctl -n hw.ncpu)"
