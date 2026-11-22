@@ -17,8 +17,9 @@ fi
 
 version="$("$tmux_bin" -V)"
 echo "$version"
-if [[ -n "${TMUX_VERSION:-}" && "$TMUX_VERSION" != preview && "$version" != "tmux $TMUX_VERSION" ]]; then
-  echo "Error: expected tmux $TMUX_VERSION, got $version" >&2
+expected_version="${TMUX_REPORTED_VERSION:-${TMUX_VERSION:-}}"
+if [[ -n "$expected_version" && "$expected_version" != preview && "$version" != "tmux $expected_version" ]]; then
+  echo "Error: expected tmux $expected_version, got $version" >&2
   exit 1
 fi
 
@@ -39,6 +40,11 @@ trap 'exit 143' TERM
 scratch="$(mktemp -d /tmp/tmux-verify.XXXXXX)"
 unset TMUX
 "$tmux_bin" -S "$scratch/socket" -f /dev/null new-session -d -s test /bin/sleep 60
+server_version="$("$tmux_bin" -N -S "$scratch/socket" display-message -p '#{version}')"
+if [[ "tmux $server_version" != "$version" ]]; then
+  echo "Error: server reports $server_version, expected ${version#tmux }" >&2
+  exit 1
+fi
 sixel_support="$("$tmux_bin" -N -S "$scratch/socket" display-message -p '#{sixel_support}')"
 if [[ "$sixel_support" != 1 ]]; then
   echo "Error: expected tmux sixel_support=1, got '${sixel_support}'" >&2

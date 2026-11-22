@@ -18,7 +18,7 @@ Supported platforms:
 
 Two types of builds are provided:
 
-- **Release builds:** Stable versions of tmux. A release tag such as `v3.6b-1` identifies build revision `1` of tmux `3.6b`. The archives and `tmux -V` report the upstream version `3.6b`.
+- **Release builds:** A tag such as `v3.8-2` identifies build revision `2` of upstream tmux `3.8`. Starting with that release, `tmux -V` and the server's `#{version}` include the build revision and repository owner, as in `3.8-2+cgraf78`. Archive names use the upstream version.
 - **Preview builds:** Built from the upstream HEAD commit selected when the build starts. The full commit SHA is recorded in `tmux-upstream-sha.txt`.
 
 Each release includes `LICENSES.tar.gz` and a `SHA256SUMS` manifest for the archives.

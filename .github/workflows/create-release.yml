@@ -23,6 +23,7 @@ jobs:
     outputs:
       is_preview: ${{ steps.meta.outputs.is_preview }}
       tmux_version: ${{ steps.meta.outputs.tmux_version }}
+      tmux_reported_version: ${{ steps.meta.outputs.tmux_reported_version }}
       release_tag: ${{ steps.meta.outputs.release_tag }}
       upstream_changed: ${{ steps.check_changes.outputs.upstream_changed }}
       upstream_head_sha: ${{ steps.tmux_head.outputs.upstream_head_sha }}
@@ -32,11 +33,14 @@ jobs:
         run: |
           case "$GITHUB_EVENT_NAME" in
             pull_request)
+              VERSION=3.8
               echo "is_preview=false"
-              echo "tmux_version=3.8"
+              echo "tmux_version=$VERSION"
+              echo "tmux_reported_version=$VERSION-0+$GITHUB_REPOSITORY_OWNER"
               ;;
             push)
-              VERSION="${GITHUB_REF_NAME#v}"
+              BUILD_VERSION="${GITHUB_REF_NAME#v}"
+              VERSION="$BUILD_VERSION"
               # A numeric suffix identifies a rebuild of the same upstream version.
               if [[ "$VERSION" =~ -[0-9]+$ ]]; then
                 VERSION="${VERSION%-*}"
@@ -44,6 +48,7 @@ jobs:
               echo "is_preview=false"
               echo "release_tag=$GITHUB_REF_NAME"
               echo "tmux_version=$VERSION"
+              echo "tmux_reported_version=$BUILD_VERSION+$GITHUB_REPOSITORY_OWNER"
               ;;
             schedule|workflow_dispatch)
               echo "is_preview=true"
@@ -96,6 +101,7 @@ jobs:
     if: ${{ needs.setup.outputs.is_preview == 'false' || needs.setup.outputs.upstream_changed == 'true' }}
     env:
       TMUX_VERSION: ${{ needs.setup.outputs.tmux_version }}
+      TMUX_REPORTED_VERSION: ${{ needs.setup.outputs.tmux_reported_version }}
       TMUX_UPSTREAM_SHA: ${{ needs.setup.outputs.upstream_head_sha }}
     strategy:
       fail-fast: false
