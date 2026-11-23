@@ -14,6 +14,10 @@ gh() {
     jq -r "$query" <<<'{"sha":"1234567890abcdef1234567890abcdef12345678"}'
     return
   fi
+  if [[ "$*" == 'api repos/tmux/tmux/releases/tags/3.9' ]]; then
+    printf '%s\n' "$response"
+    return
+  fi
   jq -r "$query" <<<"$response"
 }
 
@@ -26,6 +30,20 @@ expect() {
     return 1
   fi
 }
+
+digest=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+response='{"assets":[{"name":"tmux-3.9.tar.gz","state":"uploaded","digest":"sha256:'$digest'"}]}'
+expect "$digest" tmux_release_sha 3.9
+response=$(jq -c '.assets += .assets' <<<"$response")
+if tmux_release_sha 3.9 2>/dev/null; then
+  echo 'Ambiguous upstream tmux asset accepted' >&2
+  exit 1
+fi
+response='{"assets":[{"name":"tmux-3.9.tar.gz","state":"uploaded","digest":null}]}'
+if tmux_release_sha 3.9 2>/dev/null; then
+  echo 'Missing upstream tmux digest accepted' >&2
+  exit 1
+fi
 
 response='{"tag_name":"v3.8","draft":false,"prerelease":false}'
 expect v3.8 latest_upstream_tag

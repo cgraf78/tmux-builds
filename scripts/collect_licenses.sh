@@ -6,39 +6,33 @@ PREFIX="${PREFIX:-/tmp/build}"
 SCRIPTDIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPTDIR}/../versions.env"
 source "${SCRIPTDIR}/tmux_source.sh"
+source "${SCRIPTDIR}/build_sources.sh"
 TMUX_REF="$(tmux_source_ref)"
 
 mkdir -p "$PREFIX/licenses"
+license_dir=$(cd "$PREFIX/licenses" && pwd)
+scratch=$(mktemp -d)
+trap 'rm -rf -- "$scratch"' EXIT
 
-# libevent
-echo "Collecting libevent license..."
-wget -q "https://raw.githubusercontent.com/libevent/libevent/release-${LIBEVENT_VERSION}-stable/LICENSE" -O "$PREFIX/licenses/LICENSE.libevent"
+# Read only the license member from the same verified archives as the build.
+collect_license() (
+  local package=$1 version=$2 member=$3 output=$4 archive
+  echo "Collecting $package license..."
+  cd "$scratch"
+  archive=$(source_build_archive "$package" "$version")
+  tar -xOzf "$archive" "$member" >"$license_dir/$output"
+)
 
-# musl
-echo "Collecting musl license..."
-wget -q "https://musl.libc.org/releases/musl-${MUSL_VERSION}.tar.gz"
-tar xzf "musl-${MUSL_VERSION}.tar.gz"
-cp "musl-${MUSL_VERSION}/COPYRIGHT" "$PREFIX/licenses/COPYRIGHT.musl"
-rm -rf "musl-${MUSL_VERSION}" "musl-${MUSL_VERSION}.tar.gz"
-
-# ncurses
-echo "Collecting ncurses license..."
-wget -q "https://invisible-island.net/archives/ncurses/ncurses-${NCURSES_VERSION}.tar.gz"
-tar xzf "ncurses-${NCURSES_VERSION}.tar.gz"
-cp "ncurses-${NCURSES_VERSION}/COPYING" "$PREFIX/licenses/COPYING.ncurses"
-rm -rf "ncurses-${NCURSES_VERSION}" "ncurses-${NCURSES_VERSION}.tar.gz"
-
-# zlib
-echo "Collecting zlib license..."
-wget -q "https://raw.githubusercontent.com/madler/zlib/v${ZLIB_VERSION}/README" -O "$PREFIX/licenses/LICENSE.zlib"
-
-# utf8proc
-echo "Collecting utf8proc license..."
-wget -q "https://raw.githubusercontent.com/JuliaStrings/utf8proc/v${UTF8PROC_VERSION}/LICENSE.md" -O "$PREFIX/licenses/LICENSE.utf8proc"
-
-# tmux
-echo "Collecting tmux license..."
-wget -q "https://raw.githubusercontent.com/tmux/tmux/${TMUX_REF}/COPYING" -O "$PREFIX/licenses/COPYING.tmux"
+collect_license libevent "$LIBEVENT_VERSION" "libevent-$LIBEVENT_VERSION-stable/LICENSE" LICENSE.libevent
+collect_license musl "$MUSL_VERSION" "musl-$MUSL_VERSION/COPYRIGHT" COPYRIGHT.musl
+collect_license ncurses "$NCURSES_VERSION" "ncurses-$NCURSES_VERSION/COPYING" COPYING.ncurses
+collect_license zlib "$ZLIB_VERSION" "zlib-$ZLIB_VERSION/README" LICENSE.zlib
+collect_license utf8proc "$UTF8PROC_VERSION" "utf8proc-$UTF8PROC_VERSION/LICENSE.md" LICENSE.utf8proc
+if [[ $TMUX_VERSION == preview ]]; then
+  wget --tries=3 --timeout=30 -q "https://raw.githubusercontent.com/tmux/tmux/$TMUX_REF/COPYING" -O "$license_dir/COPYING.tmux"
+else
+  collect_license tmux "$TMUX_REF" "tmux-$TMUX_REF/COPYING" COPYING.tmux
+fi
 
 # Create archive
 echo "Creating archive..."

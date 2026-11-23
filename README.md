@@ -28,7 +28,9 @@ The daily workflow checks the [latest stable release from `tmux/tmux-builds`](ht
 ## Installation
 
 1. Go to the [releases](https://github.com/cgraf78/tmux-builds/releases) page.
+
 2. Download the archive for your platform.  
+
 3. Extract the archive with:
 
    ```bash
@@ -45,16 +47,20 @@ The daily workflow checks the [latest stable release from `tmux/tmux-builds`](ht
 
 ### Via Docker (Linux only)
 
-Adjust dependency versions in `versions.env` if needed.  
+When changing dependency versions in `versions.env`, add the SHA-256 of each
+new upstream archive to `scripts/source-pins.tsv`.
 
 Set the tmux version (without the `v` prefix) via build argument or environment variable.  
 To build from the latest `master` commit, set `TMUX_VERSION=preview`.
 
 ```bash
-docker compose build --build-arg TMUX_VERSION=3.5a
+docker compose --env-file versions.env build --build-arg TMUX_VERSION=3.5a
 # or
-TMUX_VERSION=3.5a docker compose build
+TMUX_VERSION=3.5a docker compose --env-file versions.env build
 ```
+
+For a stable tmux version outside the checked-in pins, supply its verified
+archive digest in `scripts/source-pins.tsv` before building locally.
 
 Extract the binary:
 
