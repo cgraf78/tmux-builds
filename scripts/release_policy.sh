@@ -1,5 +1,23 @@
 # shellcheck shell=bash
 
+# Resolve the digest for the exact upstream stable asset once, before the
+# build matrix. Preview builds use an immutable Git commit instead.
+tmux_release_sha() (
+  local version=$1 expected metadata digest
+  [[ $version =~ ^[0-9]+(\.[0-9]+)+[a-z]?$ ]] || return 1
+  expected="tmux-$version.tar.gz"
+  metadata=$(gh api "repos/tmux/tmux/releases/tags/$version") || return
+  digest=$(jq -er --arg name "$expected" '
+    [.assets[] | select(.name == $name and .state == "uploaded")]
+    | select(length == 1) | .[0].digest | strings
+    | select(test("^sha256:[a-f0-9]{64}$"))
+  ' <<<"$metadata") || {
+    printf 'No unique SHA-256 digest for %s in the upstream release\n' "$expected" >&2
+    return 1
+  }
+  printf '%s\n' "${digest#sha256:}"
+)
+
 # The builds project's latest release is the source of truth for stable builds.
 latest_upstream_tag() {
   local tag

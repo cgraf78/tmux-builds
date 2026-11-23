@@ -22,6 +22,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       tmux_version: ${{ steps.meta.outputs.tmux_version }}
+      tmux_sha256: ${{ steps.tmux_source.outputs.sha256 }}
       tmux_reported_version: ${{ steps.meta.outputs.tmux_reported_version }}
       release_tag: ${{ steps.meta.outputs.release_tag }}
       upstream_head_sha: ${{ steps.tmux_head.outputs.upstream_head_sha }}
@@ -32,7 +33,9 @@ jobs:
           persist-credentials: false
 
       - name: Test release selection
-        run: bash tests/release_policy.sh
+        run: |
+          bash tests/release_policy.sh
+          bash tests/build_sources.sh
 
       - name: Compute metadata
         id: meta
@@ -83,6 +86,19 @@ jobs:
             fi
           } >> "$GITHUB_OUTPUT"
 
+      - name: Resolve stable tmux source digest
+        id: tmux_source
+        if: ${{ steps.meta.outputs.is_preview == 'false' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TMUX_VERSION: ${{ steps.meta.outputs.tmux_version }}
+        run: |
+          source scripts/build_sources.sh
+          source scripts/release_policy.sh
+          sha256=$(source_pin tmux "$TMUX_VERSION" || tmux_release_sha "$TMUX_VERSION")
+          [[ "$sha256" =~ ^[0-9a-f]{64}$ ]]
+          printf 'sha256=%s\n' "$sha256" >> "$GITHUB_OUTPUT"
+
       - name: Get tmux upstream HEAD SHA
         id: tmux_head
         if: ${{ steps.meta.outputs.is_preview == 'true' }}
@@ -99,6 +115,7 @@ jobs:
     needs: setup
     env:
       TMUX_VERSION: ${{ needs.setup.outputs.tmux_version }}
+      TMUX_SHA256: ${{ needs.setup.outputs.tmux_sha256 }}
       TMUX_REPORTED_VERSION: ${{ needs.setup.outputs.tmux_reported_version }}
       TMUX_UPSTREAM_SHA: ${{ needs.setup.outputs.upstream_head_sha }}
     strategy:
@@ -221,6 +238,7 @@ jobs:
     needs: setup
     env:
       TMUX_VERSION: ${{ needs.setup.outputs.tmux_version }}
+      TMUX_SHA256: ${{ needs.setup.outputs.tmux_sha256 }}
       TMUX_UPSTREAM_SHA: ${{ needs.setup.outputs.upstream_head_sha }}
     steps:
       - name: Checkout repo

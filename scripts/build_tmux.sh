@@ -8,6 +8,7 @@ fi
 
 SCRIPTDIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPTDIR}/tmux_source.sh"
+source "${SCRIPTDIR}/build_sources.sh"
 TMUX_REF="$(tmux_source_ref)"
 
 mkdir -p "$PREFIX/src"
@@ -20,8 +21,8 @@ if [[ "${TMUX_VERSION}" == "preview" ]]; then
   git checkout --detach FETCH_HEAD
   sh autogen.sh
 else
-  wget "https://github.com/tmux/tmux/releases/download/${TMUX_REF}/tmux-${TMUX_REF}.tar.gz"
-  tar xzf "tmux-${TMUX_REF}.tar.gz"
+  archive=$(source_build_archive tmux "$TMUX_REF")
+  tar xzf "$archive"
   cd "tmux-${TMUX_REF}"
 fi
 
