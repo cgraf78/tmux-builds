@@ -43,15 +43,41 @@ with ThreadingHTTPServer(("127.0.0.1", 0), Mirror) as server, TemporaryDirectory
         path = Path(temp) / "source.tar.gz"
 
         def download(*urls, expected=digest):
+            full = [url if url.startswith("http://") else base + url for url in urls]
             return subprocess.run(
                 ["bash", "-euc", 'source "$1"; shift; download_verified "$@"', "test",
-                 sys.argv[1], str(path), expected, *(base + url for url in urls)],
+                 sys.argv[1], str(path), expected, *full],
                 cwd=temp, capture_output=True, text=True, timeout=15,
             )
 
         response = download("/truncated", "/complete")
         assert response.returncode == 0, response.stderr
         assert path.read_bytes() == archive
+
+        # A checksum mismatch on the first mirror falls through to the next
+        # mirror instead of failing the build outright. Start from a stale
+        # artifact so the bytes assertion proves publication, not inheritance.
+        path.write_bytes(b"stale artifact")
+        response = download("/wrong", "/complete")
+        assert response.returncode == 0, response.stderr
+        assert path.read_bytes() == archive
+        assert list(Path(temp).iterdir()) == [path]
+
+        # When every mirror serves bytes that fail verification, the
+        # download still fails closed and the previous artifact survives.
+        path.write_bytes(b"previous verified artifact")
+        response = download("/wrong", "/wrong")
+        assert response.returncode != 0, response.stderr
+        assert path.read_bytes() == b"previous verified artifact"
+        assert list(Path(temp).iterdir()) == [path]
+
+        # A mismatch on the first mirror followed by a transfer failure on
+        # the second (nothing listens on port 1) also fails closed.
+        path.write_bytes(b"previous verified artifact")
+        response = download("/wrong", "http://127.0.0.1:1/closed")
+        assert response.returncode != 0, response.stderr
+        assert path.read_bytes() == b"previous verified artifact"
+        assert list(Path(temp).iterdir()) == [path]
 
         for expected, mirror in ((digest, "/wrong"), ("invalid", "/complete"), (digest, "/truncated")):
             path.write_bytes(b"previous verified artifact")
