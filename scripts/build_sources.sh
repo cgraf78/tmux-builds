@@ -2,10 +2,11 @@
 
 build_source_pins=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/source-pins.tsv
 
-# A failed transfer may leave a partial file. Reuse the same temporary
-# pathname for the next mirror and publish only verified bytes.
+# A failed transfer or a checksum mismatch may leave a partial file. Reuse
+# the same temporary pathname for the next mirror and publish only
+# verified bytes.
 download_verified() (
-  local archive=$1 expected=$2 stage actual url status
+  local archive=$1 expected=$2 stage actual url status mismatched=0
   shift 2
   if [[ ! $expected =~ ^[a-f0-9]{64}$ || -d $archive ]]; then
     printf 'Invalid archive destination or SHA-256 pin for %s\n' "$archive" >&2
@@ -23,8 +24,13 @@ download_verified() (
         actual=$(shasum -a 256 <"$stage") || return
       fi
       if [[ ${actual%% *} != "$expected" ]]; then
+        # Corrupt bytes from one mirror are not a verdict on the pin: fall
+        # through to the next mirror, which carries the same pinned bytes.
+        # Bytes are published only after they verify, so no mirror can
+        # smuggle unverified bytes into the build.
         printf 'SHA-256 mismatch for %s from %s\n' "$archive" "$url" >&2
-        return 1
+        mismatched=1
+        continue
       fi
       mv -f -- "$stage" "$archive"
       return
@@ -33,7 +39,11 @@ download_verified() (
     fi
     printf 'Download failed from %s (wget exit %s)\n' "$url" "$status" >&2
   done
-  printf 'Could not download %s from any mirror\n' "$archive" >&2
+  if [[ $mismatched -ne 0 ]]; then
+    printf 'No mirror served bytes matching the pinned SHA-256 for %s\n' "$archive" >&2
+  else
+    printf 'Could not download %s from any mirror\n' "$archive" >&2
+  fi
   return 1
 )
 
